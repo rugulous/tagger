@@ -1,6 +1,40 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 5881:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = {
+    run: async (context, pullRequest, rest) => {
+        if (!context.payload.repository || !context.payload.pull_request) {
+            return false;
+        }
+        const owner = context.payload.repository.owner.login;
+        const repo = context.payload.repository.name;
+        const pullNumber = pullRequest.number;
+        try {
+            await rest.issues.setLabels({
+                owner,
+                repo,
+                issue_number: pullNumber,
+                labels: [],
+            });
+            console.log(`Removed label from PR #${pullNumber}`);
+        }
+        catch (error) {
+            if (error instanceof Error)
+                console.error(`Failed to remove labels from PR #${pullNumber}: ${error.message}`);
+        }
+    },
+    triggers: ['closed', 'converted_to_draft'],
+};
+
+
+/***/ }),
+
 /***/ 7305:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -10,9 +44,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const closed_remove_labels_1 = __importDefault(__nccwpck_require__(5881));
 const prepend_wip_1 = __importDefault(__nccwpck_require__(7274));
 const title_edited_labels_1 = __importDefault(__nccwpck_require__(7005));
-const handlers = [prepend_wip_1.default, title_edited_labels_1.default];
+const handlers = [closed_remove_labels_1.default, prepend_wip_1.default, title_edited_labels_1.default];
 async function runHandlers(context, pullRequest, rest) {
     const targetHandlers = handlers
         .filter(h => h.triggers.includes(context.payload.action ?? ''))
