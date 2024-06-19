@@ -5,6 +5,7 @@ import { components } from '@octokit/openapi-types';
 type PullRequest = components['schemas']['pull-request'];
 
 import prependWip from './prepend-wip';
+import titleEditedLabels from './title-edited-labels';
 
 export type Handler = {
   run: (
@@ -16,7 +17,7 @@ export type Handler = {
   priority?: number;
 };
 
-const handlers = [prependWip];
+const handlers = [prependWip, titleEditedLabels];
 
 export default async function runHandlers(
   context: Context,

@@ -11,7 +11,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const prepend_wip_1 = __importDefault(__nccwpck_require__(7274));
-const handlers = [prepend_wip_1.default];
+const title_edited_labels_1 = __importDefault(__nccwpck_require__(7005));
+const handlers = [prepend_wip_1.default, title_edited_labels_1.default];
 async function runHandlers(context, pullRequest, rest) {
     const targetHandlers = handlers
         .filter(h => h.triggers.includes(context.payload.action ?? ''))
@@ -75,6 +76,66 @@ exports["default"] = {
         return true;
     },
     triggers: ['opened', 'reopened', 'ready_for_review'],
+};
+
+
+/***/ }),
+
+/***/ 7005:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const labels_1 = __nccwpck_require__(3579);
+exports["default"] = {
+    run: async (context, pullRequest, rest) => {
+        if (!context.payload.repository || !context.payload.pull_request) {
+            return false;
+        }
+        const owner = context.payload.repository.owner.login;
+        const repo = context.payload.repository.name;
+        const pullNumber = pullRequest.number;
+        const title = pullRequest.title;
+        if (pullRequest.state !== 'open') {
+            console.log(`Skipping ${pullRequest.state} pr`);
+        }
+        const prLabelsFiltered = pullRequest.labels
+            .filter(l => l.name !== labels_1.labels.wip.name)
+            .map(l => l.name);
+        const hasWipLabel = pullRequest.labels.length > prLabelsFiltered.length;
+        if (title.match(labels_1.labels.wip.regex ?? '')) {
+            try {
+                await rest.issues.setLabels({
+                    owner,
+                    repo,
+                    issue_number: pullNumber,
+                    labels: [labels_1.labels.wip.name],
+                });
+                console.log(`Added WIP label to PR #${pullNumber}`);
+            }
+            catch (error) {
+                if (error instanceof Error)
+                    console.error(`Failed to add WIP label to PR #${pullNumber}: ${error.message}`);
+            }
+        }
+        else {
+            try {
+                await rest.issues.setLabels({
+                    owner,
+                    repo,
+                    issue_number: pullNumber,
+                    labels: [labels_1.labels.readyForReview.name],
+                });
+                console.log(`Added RFR label to PR #${pullNumber}`);
+            }
+            catch (error) {
+                if (error instanceof Error)
+                    console.error(`Failed to add RFR label to PR #${pullNumber}: ${error.message}`);
+            }
+        }
+    },
+    triggers: ['edited'],
 };
 
 
