@@ -2,12 +2,16 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
 /***/ 7305:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const handlers = [];
+const prepend_wip_1 = __importDefault(__nccwpck_require__(7274));
+const handlers = [prepend_wip_1.default];
 async function runHandlers(context, pullRequest, rest) {
     const targetHandlers = handlers
         .filter(h => h.triggers.includes(context.payload.action ?? ''))
@@ -19,6 +23,59 @@ async function runHandlers(context, pullRequest, rest) {
     }
 }
 exports["default"] = runHandlers;
+
+
+/***/ }),
+
+/***/ 7274:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const labels_1 = __nccwpck_require__(3579);
+exports["default"] = {
+    run: async (context, pullRequest, rest) => {
+        if (!context.payload.repository || !context.payload.pull_request) {
+            return false;
+        }
+        const owner = context.payload.repository.owner.login;
+        const repo = context.payload.repository.name;
+        const pullNumber = pullRequest.number;
+        let title = pullRequest.title;
+        if (!title.match(labels_1.labels.wip.regex ?? ''))
+            title = `[WIP] ${title}`;
+        try {
+            await rest.pulls.update({
+                owner,
+                repo,
+                pull_number: pullNumber,
+                title,
+            });
+            console.log(`Updated title on PR #${pullNumber}`);
+        }
+        catch (error) {
+            if (error instanceof Error)
+                console.error(`Failed to update title on PR #${pullNumber}: ${error.message}`);
+            return false;
+        }
+        try {
+            await rest.issues.setLabels({
+                owner,
+                repo,
+                issue_number: pullNumber,
+                labels: [labels_1.labels.wip.name],
+            });
+            console.log(`Added WIP label to PR #${pullNumber}`);
+        }
+        catch (error) {
+            if (error instanceof Error)
+                console.error(`Failed to add WIP label to PR #${pullNumber}: ${error.message}`);
+        }
+        return true;
+    },
+    triggers: ['opened', 'reopened', 'ready_for_review'],
+};
 
 
 /***/ }),
@@ -83,6 +140,50 @@ async function run() {
 }
 exports.run = run;
 run();
+
+
+/***/ }),
+
+/***/ 3579:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.labels = void 0;
+exports.labels = {
+    wip: {
+        regex: /^\[WIP\]\s/i,
+        name: ':construction: WIP',
+        color: '#FBCA04',
+        description: 'Still under development, not yet ready for review',
+    },
+    readyForReview: {
+        name: ':mag: Ready for Review',
+        color: '#334796',
+        description: 'Ready for reviews',
+    },
+    approved: {
+        name: ':white_check_mark: Approved',
+        color: '#0E8A16',
+        description: 'Has been reviewed, approved and is ready for merge',
+    },
+    changesRequested: {
+        name: ':warning: Changes requested',
+        color: '#AA2626',
+        description: 'Has been reviewd, and changes have been requested',
+    },
+    merged: {
+        name: ':sparkles: Merged',
+        color: '#6F42C1',
+        description: 'Merged successfully',
+    },
+    failingCI: {
+        name: ':x: Failing CI',
+        color: '#F92F60',
+        description: 'There are failing tests that must be fixed before it can be reviewed',
+    },
+};
 
 
 /***/ }),
