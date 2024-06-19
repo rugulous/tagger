@@ -1,7 +1,9 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 
-async function run() {
+import runHandlers from './handlers';
+
+export async function run() {
   try {
     const token = core.getInput('github-token');
     const context = github.context;
@@ -11,15 +13,16 @@ async function run() {
 
     if (!context.payload.pull_request) {
       core.setFailed('context is not pull request');
+      return;
     }
 
     const { data: pullRequest } = await rest.pulls.get({
       owner,
       repo,
-      pull_number: context.payload?.pull_request?.number ?? 0,
+      pull_number: context.payload.pull_request.number,
     });
 
-    console.log(pullRequest);
+    await runHandlers(context, pullRequest, rest);
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message);
   }

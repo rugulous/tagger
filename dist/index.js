@@ -1,6 +1,28 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 7305:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const handlers = [];
+async function runHandlers(context, pullRequest, rest) {
+    const targetHandlers = handlers
+        .filter(h => h.triggers.includes(context.payload.action ?? ''))
+        .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+    console.log(`trigger: ${context.payload.action}`);
+    console.log(`found ${targetHandlers.length} handlers`);
+    for (const h of targetHandlers) {
+        await h.run(context, pullRequest, rest);
+    }
+}
+exports["default"] = runHandlers;
+
+
+/***/ }),
+
 /***/ 4822:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -29,28 +51,37 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+const handlers_1 = __importDefault(__nccwpck_require__(7305));
 async function run() {
     try {
-        const token = core.getInput("github-token");
+        const token = core.getInput('github-token');
         const context = github.context;
         const { rest } = github.getOctokit(token);
         const { owner, repo } = context.repo;
-        console.log(github.context);
+        if (!context.payload.pull_request) {
+            core.setFailed('context is not pull request');
+            return;
+        }
         const { data: pullRequest } = await rest.pulls.get({
             owner,
             repo,
-            pull_number: context.payload?.pull_request?.number ?? 0,
+            pull_number: context.payload.pull_request.number,
         });
-        console.log(pullRequest);
+        await (0, handlers_1.default)(context, pullRequest, rest);
     }
     catch (error) {
         if (error instanceof Error)
             core.setFailed(error.message);
     }
 }
+exports.run = run;
 run();
 
 
