@@ -1,36 +1,147 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 5881:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ 116:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const PullRequest_1 = __importDefault(__nccwpck_require__(8650));
+class Entity {
+    context;
+    rest;
+    constructor(context, rest) {
+        this.context = context;
+        this.rest = rest;
+    }
+    async getEventEntity() {
+        switch (this.context.eventName) {
+            case 'pull_request_review':
+            case 'pull_request_target':
+            case 'pull_request':
+                return await PullRequest_1.default.init(this.context, this.rest);
+                break;
+            default:
+                throw new Error(`Unknown eventName ${this.context.eventName}`);
+                break;
+        }
+    }
+}
+exports["default"] = Entity;
+
+
+/***/ }),
+
+/***/ 470:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports["default"] = {
-    run: async (context, pullRequest, rest) => {
-        if (!context.payload.repository || !context.payload.pull_request) {
-            return false;
+const labels_1 = __nccwpck_require__(3579);
+class GenericEvent {
+    context;
+    rest;
+    data;
+    owner;
+    repo;
+    eventName;
+    trigger;
+    handlers;
+    number;
+    constructor(context, rest, data, handlers) {
+        this.context = context;
+        this.rest = rest;
+        this.data = data;
+        this.owner = context.repo.owner;
+        this.repo = context.repo.repo;
+        this.eventName = context.eventName;
+        this.trigger = context.payload.action ?? '';
+        this.number = data.number;
+        this.handlers = handlers;
+    }
+    get manualLabels() {
+        const labelNames = Object.values(labels_1.labels).map(l => l.name);
+        const manualLabels = this.data.labels
+            .map(l => l.name)
+            .filter(l => !labelNames.includes(l));
+        return manualLabels;
+    }
+    async runHandlers() {
+        const handlers = this.handlers
+            .filter(h => h.triggers.includes(this.trigger ?? ''))
+            .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+        console.log(`eventName: ${this.eventName}`);
+        console.log(`trigger: ${this.trigger}`);
+        console.log(this.context);
+        console.log(`found ${handlers.length} handlers`);
+        for (const h of handlers) {
+            await h.run(this);
         }
-        const owner = context.payload.repository.owner.login;
-        const repo = context.payload.repository.name;
-        const pullNumber = pullRequest.number;
-        try {
-            await rest.issues.setLabels({
-                owner,
-                repo,
-                issue_number: pullNumber,
-                labels: [],
-            });
-            console.log(`Removed label from PR #${pullNumber}`);
-        }
-        catch (error) {
-            if (error instanceof Error)
-                console.error(`Failed to remove labels from PR #${pullNumber}: ${error.message}`);
-        }
-    },
-    triggers: ['closed', 'converted_to_draft'],
+    }
+    async setLabel(label) {
+        await this.rest.issues.setLabels({
+            owner: this.owner,
+            repo: this.repo,
+            issue_number: this.number,
+            labels: [...this.manualLabels, label.name],
+        });
+    }
+    async clearLabels() {
+        await this.rest.issues.setLabels({
+            owner: this.owner,
+            repo: this.repo,
+            issue_number: this.number,
+            labels: this.manualLabels,
+        });
+    }
+    async setTitle(_title) {
+        throw new Error(`setTitle is not implemented for ${this.eventName}`);
+    }
+}
+exports["default"] = GenericEvent;
+
+
+/***/ }),
+
+/***/ 8650:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const GenericEvent_1 = __importDefault(__nccwpck_require__(470));
+const handlers_1 = __nccwpck_require__(7305);
+class PullRequest extends GenericEvent_1.default {
+    static async init(context, rest) {
+        if (!context.payload.pull_request) {
+            throw new Error('No pull_request payload');
+        }
+        const { owner, repo } = context.repo;
+        const { data: pullRequest } = await rest.pulls.get({
+            owner,
+            repo,
+            pull_number: context.payload.pull_request.number,
+        });
+        return new PullRequest(context, rest, pullRequest, handlers_1.pullRequestHandlers);
+    }
+    async setTitle(title) {
+        await this.rest.pulls.update({
+            owner: this.owner,
+            repo: this.repo,
+            pull_number: this.number,
+            title,
+        });
+    }
+}
+exports["default"] = PullRequest;
 
 
 /***/ }),
@@ -44,26 +155,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const closed_remove_labels_1 = __importDefault(__nccwpck_require__(5881));
-const prepend_wip_1 = __importDefault(__nccwpck_require__(7274));
-const title_edited_labels_1 = __importDefault(__nccwpck_require__(7005));
-const handlers = [closed_remove_labels_1.default, prepend_wip_1.default, title_edited_labels_1.default];
-async function runHandlers(context, pullRequest, rest) {
-    const targetHandlers = handlers
-        .filter(h => h.triggers.includes(context.payload.action ?? ''))
-        .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
-    console.log(`trigger: ${context.payload.action}`);
-    console.log(`found ${targetHandlers.length} handlers`);
-    for (const h of targetHandlers) {
-        await h.run(context, pullRequest, rest);
-    }
-}
-exports["default"] = runHandlers;
+exports.pullRequestHandlers = void 0;
+const pullRequest_1 = __importDefault(__nccwpck_require__(889));
+exports.pullRequestHandlers = pullRequest_1.default;
 
 
 /***/ }),
 
-/***/ 7274:
+/***/ 1332:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -71,44 +170,50 @@ exports["default"] = runHandlers;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const labels_1 = __nccwpck_require__(3579);
 exports["default"] = {
-    run: async (context, pullRequest, rest) => {
-        if (!context.payload.repository || !context.payload.pull_request) {
-            return false;
-        }
-        const owner = context.payload.repository.owner.login;
-        const repo = context.payload.repository.name;
-        const pullNumber = pullRequest.number;
-        let title = pullRequest.title;
+    run: async (entity) => {
+        let title = entity.data.title;
+        if (title.match(labels_1.labels.wip.regex ?? ''))
+            title = title.substring(6);
+        await entity.setTitle(title);
+        await entity.clearLabels();
+    },
+    triggers: ['closed', 'converted_to_draft'],
+};
+
+
+/***/ }),
+
+/***/ 889:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const closed_remove_labels_1 = __importDefault(__nccwpck_require__(1332));
+const prepend_wip_1 = __importDefault(__nccwpck_require__(7459));
+const title_edited_labels_1 = __importDefault(__nccwpck_require__(97));
+exports["default"] = [closed_remove_labels_1.default, prepend_wip_1.default, title_edited_labels_1.default];
+
+
+/***/ }),
+
+/***/ 7459:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const labels_1 = __nccwpck_require__(3579);
+exports["default"] = {
+    run: async (entity) => {
+        let title = entity.data.title;
         if (!title.match(labels_1.labels.wip.regex ?? ''))
             title = `[WIP] ${title}`;
-        try {
-            await rest.pulls.update({
-                owner,
-                repo,
-                pull_number: pullNumber,
-                title,
-            });
-            console.log(`Updated title on PR #${pullNumber}`);
-        }
-        catch (error) {
-            if (error instanceof Error)
-                console.error(`Failed to update title on PR #${pullNumber}: ${error.message}`);
-            return false;
-        }
-        try {
-            await rest.issues.setLabels({
-                owner,
-                repo,
-                issue_number: pullNumber,
-                labels: [labels_1.labels.wip.name],
-            });
-            console.log(`Added WIP label to PR #${pullNumber}`);
-        }
-        catch (error) {
-            if (error instanceof Error)
-                console.error(`Failed to add WIP label to PR #${pullNumber}: ${error.message}`);
-        }
-        return true;
+        await entity.setTitle(title);
+        await entity.setLabel(labels_1.labels.wip);
     },
     triggers: ['opened', 'reopened', 'ready_for_review'],
 };
@@ -116,7 +221,7 @@ exports["default"] = {
 
 /***/ }),
 
-/***/ 7005:
+/***/ 97:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -124,50 +229,17 @@ exports["default"] = {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const labels_1 = __nccwpck_require__(3579);
 exports["default"] = {
-    run: async (context, pullRequest, rest) => {
-        if (!context.payload.repository || !context.payload.pull_request) {
-            return false;
+    run: async (entity) => {
+        const title = entity.data.title;
+        if (entity.data.state !== 'open') {
+            console.log(`Skipping ${entity.data.state} pr`);
+            return;
         }
-        const owner = context.payload.repository.owner.login;
-        const repo = context.payload.repository.name;
-        const pullNumber = pullRequest.number;
-        const title = pullRequest.title;
-        if (pullRequest.state !== 'open') {
-            console.log(`Skipping ${pullRequest.state} pr`);
-        }
-        const prLabelsFiltered = pullRequest.labels
-            .filter(l => l.name !== labels_1.labels.wip.name)
-            .map(l => l.name);
-        const hasWipLabel = pullRequest.labels.length > prLabelsFiltered.length;
         if (title.match(labels_1.labels.wip.regex ?? '')) {
-            try {
-                await rest.issues.setLabels({
-                    owner,
-                    repo,
-                    issue_number: pullNumber,
-                    labels: [labels_1.labels.wip.name],
-                });
-                console.log(`Added WIP label to PR #${pullNumber}`);
-            }
-            catch (error) {
-                if (error instanceof Error)
-                    console.error(`Failed to add WIP label to PR #${pullNumber}: ${error.message}`);
-            }
+            await entity.setLabel(labels_1.labels.wip);
         }
         else {
-            try {
-                await rest.issues.setLabels({
-                    owner,
-                    repo,
-                    issue_number: pullNumber,
-                    labels: [labels_1.labels.readyForReview.name],
-                });
-                console.log(`Added RFR label to PR #${pullNumber}`);
-            }
-            catch (error) {
-                if (error instanceof Error)
-                    console.error(`Failed to add RFR label to PR #${pullNumber}: ${error.message}`);
-            }
+            await entity.setLabel(labels_1.labels.readyForReview);
         }
     },
     triggers: ['edited'],
@@ -211,23 +283,15 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const handlers_1 = __importDefault(__nccwpck_require__(7305));
+const Entity_1 = __importDefault(__nccwpck_require__(116));
 async function run() {
     try {
         const token = core.getInput('github-token');
         const context = github.context;
         const { rest } = github.getOctokit(token);
-        const { owner, repo } = context.repo;
-        if (!context.payload.pull_request) {
-            core.setFailed('context is not pull request');
-            return;
-        }
-        const { data: pullRequest } = await rest.pulls.get({
-            owner,
-            repo,
-            pull_number: context.payload.pull_request.number,
-        });
-        await (0, handlers_1.default)(context, pullRequest, rest);
+        const e = new Entity_1.default(context, rest);
+        const te = await e.getEventEntity();
+        await te.runHandlers();
     }
     catch (error) {
         if (error instanceof Error)
