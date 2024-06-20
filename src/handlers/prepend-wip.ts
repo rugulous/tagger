@@ -47,6 +47,8 @@ export default {
         console.error(
           `Failed to add WIP label to PR #${pullNumber}: ${error.message}`,
         );
+
+      return false;
     }
 
     return true;

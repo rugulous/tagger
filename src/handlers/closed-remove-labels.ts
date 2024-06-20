@@ -26,7 +26,11 @@ export default {
         console.error(
           `Failed to remove labels from PR #${pullNumber}: ${error.message}`,
         );
+
+      return false;
     }
+
+    return true;
   },
   triggers: ['closed', 'converted_to_draft'],
 } as Handler;

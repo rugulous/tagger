@@ -15,6 +15,7 @@ export default {
 
     if (pullRequest.state !== 'open') {
       console.log(`Skipping ${pullRequest.state} pr`);
+      return true;
     }
 
     const prLabelsFiltered = pullRequest.labels
@@ -37,6 +38,8 @@ export default {
           console.error(
             `Failed to add WIP label to PR #${pullNumber}: ${error.message}`,
           );
+
+        return false;
       }
     } else {
       try {
@@ -53,7 +56,11 @@ export default {
           console.error(
             `Failed to add RFR label to PR #${pullNumber}: ${error.message}`,
           );
+
+        return false;
       }
+
+    return true;
     }
   },
   triggers: ['edited'],
