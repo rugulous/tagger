@@ -77,7 +77,7 @@ export default class GenericEvent {
     });
   }
 
-  async setTitle(_title: string) {
-    throw new Error(`setTitle is not implemented for ${this.eventName}`);
-  }
+//  async setTitle(_title: string) {
+//    throw new Error(`setTitle is not implemented for ${this.eventName}`);
+//  }
 }
