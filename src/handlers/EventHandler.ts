@@ -1,14 +1,14 @@
 import { Handler } from ".";
 import GenericEvent from "../classes/GenericEvent";
 
-export abstract class EventHandler<T extends GenericEvent> {
+export class EventHandler<T extends GenericEvent> {
     handlers: Handler<T>[];
+    accepts: (x: GenericEvent) => x is T;
 
-    constructor(handlers: Handler<T>[] = []){
+    constructor(handlers: Handler<T>[],  acceptFn: (x: GenericEvent) => x is T){
         this.handlers = handlers;
+        this.accepts = acceptFn;
     }
-
-    abstract accepts(x: GenericEvent): x is T;
 
     async dispatch(event: T) {
         const handlers = this.handlers
@@ -23,11 +23,5 @@ export abstract class EventHandler<T extends GenericEvent> {
         for (const h of handlers) {
             await h.run(event);
         }
-    }
-}
-
-export class PrEventHandler<T extends GenericEvent> extends EventHandler<T>{
-    accepts(x: GenericEvent): x is T{
-        return 'setTitle' in x;
     }
 }

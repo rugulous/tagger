@@ -1,6 +1,6 @@
 import GenericEvent from '../classes/GenericEvent';
 import PullRequest from '../classes/PullRequest';
-import { PrEventHandler } from './EventHandler';
+import { EventHandler } from './EventHandler';
 import pullRequestHandlers from './pullRequest';
 
 export type Handler<T extends GenericEvent> = {
@@ -9,6 +9,6 @@ export type Handler<T extends GenericEvent> = {
   priority?: number;
 };
 
-const prHandler = new PrEventHandler(pullRequestHandlers);
+const prHandler = new EventHandler(pullRequestHandlers, (x: GenericEvent): x is PullRequest => 'setTitle' in x);
 
 export const handlers = [prHandler];
