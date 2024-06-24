@@ -8,7 +8,7 @@ export abstract class EventHandler<T extends GenericEvent> {
         this.handlers = handlers;
     }
 
-    abstract accepts(x: any): x is T;
+    abstract accepts(x: GenericEvent): x is T;
 
     async dispatch(event: T) {
         const handlers = this.handlers
@@ -27,7 +27,7 @@ export abstract class EventHandler<T extends GenericEvent> {
 }
 
 export class PrEventHandler<T extends GenericEvent> extends EventHandler<T>{
-    accepts(x: any): x is T{
-        return true;
+    accepts(x: GenericEvent): x is T{
+        return 'setTitle' in x;
     }
 }
