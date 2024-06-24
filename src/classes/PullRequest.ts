@@ -1,9 +1,11 @@
 import { Context } from '@actions/github/lib/context';
 import { RestEndpointMethods } from '@octokit/plugin-rest-endpoint-methods/dist-types/generated/method-types';
 
-import GenericEvent from './GenericEvent';
+import GenericEvent, { EventTypes } from './GenericEvent';
 
 export default class PullRequest extends GenericEvent {
+  eventType: EventTypes = "pullRequest";
+
   static async init(context: Context, rest: RestEndpointMethods) {
     if (!context.payload.pull_request) {
       throw new Error('No pull_request payload');

@@ -3,12 +3,16 @@ import GenericEvent from "../classes/GenericEvent";
 
 export class EventHandler<T extends GenericEvent> {
     handlers: Handler<T>[];
-    accepts: (x: GenericEvent) => x is T;
+    handlingType: string;
 
-    constructor(handlers: Handler<T>[],  acceptFn: (x: GenericEvent) => x is T){
+    constructor(handlers: Handler<T>[], handlingType: string){
         this.handlers = handlers;
-        this.accepts = acceptFn;
+        this.handlingType = handlingType;
     }
+
+    accepts(x: GenericEvent): x is T{
+        return x.eventType == this.handlingType;
+    };
 
     async dispatch(event: T) {
         const handlers = this.handlers

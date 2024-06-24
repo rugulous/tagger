@@ -6,6 +6,8 @@ import { Label, labels } from '../labels';
 
 type OctokitPullRequest = components['schemas']['pull-request'];
 
+export type EventTypes = "test" | "pullRequest" | "issue";
+
 export default class GenericEvent {
   context: Context;
   rest: RestEndpointMethods;
@@ -15,6 +17,7 @@ export default class GenericEvent {
   eventName: string;
   trigger: string;
   number: number;
+  eventType: EventTypes = "test";
 
   constructor(
     context: Context,

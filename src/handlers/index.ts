@@ -9,6 +9,6 @@ export type Handler<T extends GenericEvent> = {
   priority?: number;
 };
 
-const prHandler = new EventHandler(pullRequestHandlers, (x: GenericEvent): x is PullRequest => 'setTitle' in x);
+const prHandler = new EventHandler<PullRequest>(pullRequestHandlers, "pullRequest");
 
 export const handlers = [prHandler];
