@@ -3,8 +3,6 @@ import { RestEndpointMethods } from '@octokit/plugin-rest-endpoint-methods/dist-
 
 import GenericEvent from './GenericEvent';
 
-import { pullRequestHandlers } from '../handlers';
-
 export default class PullRequest extends GenericEvent {
   static async init(context: Context, rest: RestEndpointMethods) {
     if (!context.payload.pull_request) {
@@ -19,7 +17,7 @@ export default class PullRequest extends GenericEvent {
       pull_number: context.payload.pull_request.number,
     });
 
-    return new PullRequest(context, rest, pullRequest, pullRequestHandlers);
+    return new PullRequest(context, rest, pullRequest);
   }
 
   async setTitle(title: string) {
