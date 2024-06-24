@@ -1,6 +1,7 @@
 import { labels } from '../../labels';
 
 import { Handler } from '../';
+import PullRequest from '../../classes/PullRequest';
 
 export default {
   run: async entity => {
@@ -11,4 +12,4 @@ export default {
     await entity.clearLabels();
   },
   triggers: ['closed', 'converted_to_draft'],
-} as Handler;
+} as Handler<PullRequest>;

@@ -1,6 +1,7 @@
 import { labels } from '../../labels';
 
 import { Handler } from '../';
+import PullRequest from '../../classes/PullRequest';
 
 export default {
   run: async entity => {
@@ -18,4 +19,4 @@ export default {
     }
   },
   triggers: ['edited'],
-} as Handler;
+} as Handler<PullRequest>;

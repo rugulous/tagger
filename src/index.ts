@@ -15,7 +15,7 @@ export async function run() {
 
     for(const handler of handlers){
       if(handler.accepts(te)){
-        handler.dispatch(te);
+        await handler.dispatch(te);
       }
     }
 
