@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 
 import Entity from './classes/Entity';
-import {handlers} from "./handlers";
+import {handler} from "./handlers";
 
 export async function run() {
   try {
@@ -13,11 +13,7 @@ export async function run() {
     const e = new Entity(context, rest);
     const te = await e.getEventEntity();
 
-    for(const handler of handlers){
-      if(handler.accepts(te)){
-        await handler.dispatch(te);
-      }
-    }
+    await handler.dispatch(te);
 
     
   } catch (error) {

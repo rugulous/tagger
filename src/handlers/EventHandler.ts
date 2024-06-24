@@ -1,23 +1,24 @@
 import { Handler } from ".";
-import GenericEvent from "../classes/GenericEvent";
+import GenericEvent, { EventTypes } from "../classes/GenericEvent";
 
-export class EventHandler<T extends GenericEvent> {
-    handlers: Handler<T>[];
-    handlingType: string;
+type HandlerType = Partial<Record<EventTypes, Handler<any>[]>>;
 
-    constructor(handlers: Handler<T>[], handlingType: string){
+export class EventHandler {
+    handlers: HandlerType;
+
+    constructor(handlers: HandlerType){
         this.handlers = handlers;
-        this.handlingType = handlingType;
     }
 
-    accepts(x: GenericEvent): x is T{
-        return x.eventType == this.handlingType;
-    };
+    async dispatch(event: GenericEvent) {
+        const handlers = [];
+        for(const type of Object.keys(this.handlers) as EventTypes[]){
+            if(type == event.eventType){
+                handlers.push(...this.handlers[type]!.filter(h => h.triggers.includes(event.trigger ?? '')));
+            }
+        }
 
-    async dispatch(event: T) {
-        const handlers = this.handlers
-            .filter(h => h.triggers.includes(event.trigger ?? ''))
-            .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+        handlers.sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));      
 
         console.log(`eventName: ${event.eventName}`);
         console.log(`trigger: ${event.trigger}`);

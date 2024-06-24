@@ -1,5 +1,5 @@
 import GenericEvent from '../classes/GenericEvent';
-import PullRequest from '../classes/PullRequest';
+import Issue from '../classes/Issue';
 import { EventHandler } from './EventHandler';
 import pullRequestHandlers from './pullRequest';
 
@@ -9,6 +9,11 @@ export type Handler<T extends GenericEvent> = {
   priority?: number;
 };
 
-const prHandler = new EventHandler<PullRequest>(pullRequestHandlers, "pullRequest");
-
-export const handlers = [prHandler];
+export const handler = new EventHandler({
+  pullRequest: pullRequestHandlers,
+  issue: [
+    {
+      run: (entity: Issue) => console.log(entity)
+    } as Handler<Issue>
+  ]
+});
